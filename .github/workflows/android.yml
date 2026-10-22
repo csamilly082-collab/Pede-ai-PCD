@@ -10,9 +10,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Preparar projeto
         run: |
+          echo "Arquivos no repositorio:"; ls -la
           mkdir -p build
-          if [ -f pede-ai-pdv.zip ]; then unzip -q pede-ai-pdv.zip -d build; else rsync -a --exclude build --exclude .git ./ build/; fi
-          ls -la build
+          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d build; done
+          P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
+          if [ -z "$P" ]; then
+            rsync -a --exclude build --exclude .git ./ build/
+            P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
+          fi
+          if [ -z "$P" ]; then echo "ERRO: package.json nao encontrado. Envie o ZIP para a raiz do repositorio."; exit 1; fi
+          echo "APP=$(dirname "$P")" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -20,15 +27,45 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - run: npm install
-        working-directory: build
-      - run: npx cap add android
-        working-directory: build
-      - run: npx cap sync android
-        working-directory: build
-      - run: chmod +x gradlew && ./gradlew assembleDebug
-        working-directory: build/android
+      - run: cd "$APP" && npm install
+      - run: cd "$APP" && npx cap add android && npx cap sync android
+      - run: cd "$APP/android" && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: pede-ai-pdv-apk
-          path: build/android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.APP }}/android/app/build/outputs/apk/debug/app-debug.apkname: Build APK
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar projeto
+        run: |
+          echo "Arquivos no repositorio:"; ls -la
+          mkdir -p build
+          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d build; done
+          P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
+          if [ -z "$P" ]; then
+            rsync -a --exclude build --exclude .git ./ build/
+            P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
+          fi
+          if [ -z "$P" ]; then echo "ERRO: package.json nao encontrado. Envie o ZIP para a raiz do repositorio."; exit 1; fi
+          echo "APP=$(dirname "$P")" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: cd "$APP" && npm install
+      - run: cd "$APP" && npx cap add android && npx cap sync android
+      - run: cd "$APP/android" && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pede-ai-pdv-apk
+          path: ${{ env.APP }}/android/app/build/outputs/apk/debug/app-debug.apk
