@@ -10,62 +10,34 @@ jobs:
       - uses: actions/checkout@v4
       - name: Preparar projeto
         run: |
-          echo "Arquivos no repositorio:"; ls -la
-          mkdir -p build
-          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d build; done
-          P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
-          if [ -z "$P" ]; then
-            rsync -a --exclude build --exclude .git ./ build/
-            P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
-          fi
-          if [ -z "$P" ]; then echo "ERRO: package.json nao encontrado. Envie o ZIP para a raiz do repositorio."; exit 1; fi
-          echo "APP=$(dirname "$P")" >> "$GITHUB_ENV"
+          ls -la
+          mkdir -p tmp appbuild
+          for z in *.zip; do if [ -f "$z" ]; then unzip -q -o "$z" -d tmp; fi; done
+          P=$(find tmp -name package.json -not -path "*/node_modules/*" | head -1)
+          if [ -z "$P" ]; then P=./package.json; fi
+          if [ ! -f "$P" ]; then echo "ERRO package.json nao encontrado"; exit 1; fi
+          rsync -a --exclude tmp --exclude appbuild --exclude .git "$(dirname "$P")"/ appbuild/
+          ls -la appbuild
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - run: cd "$APP" && npm install
-      - run: cd "$APP" && npx cap add android && npx cap sync android
-      - run: cd "$APP/android" && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Instalar
+        working-directory: appbuild
+        run: npm install
+      - name: Adicionar Android
+        working-directory: appbuild
+        run: npx cap add android
+      - name: Sincronizar
+        working-directory: appbuild
+        run: npx cap sync android
+      - name: Compilar APK
+        working-directory: appbuild/android
+        run: chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: pede-ai-pdv-apk
-          path: ${{ env.APP }}/android/app/build/outputs/apk/debug/app-debug.apkname: Build APK
-on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:
-jobs:
-  apk:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Preparar projeto
-        run: |
-          echo "Arquivos no repositorio:"; ls -la
-          mkdir -p build
-          for z in *.zip; do [ -f "$z" ] && unzip -q -o "$z" -d build; done
-          P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
-          if [ -z "$P" ]; then
-            rsync -a --exclude build --exclude .git ./ build/
-            P=$(find build -name package.json -not -path "*/node_modules/*" | head -1)
-          fi
-          if [ -z "$P" ]; then echo "ERRO: package.json nao encontrado. Envie o ZIP para a raiz do repositorio."; exit 1; fi
-          echo "APP=$(dirname "$P")" >> "$GITHUB_ENV"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-      - run: cd "$APP" && npm install
-      - run: cd "$APP" && npx cap add android && npx cap sync android
-      - run: cd "$APP/android" && chmod +x gradlew && ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pede-ai-pdv-apk
-          path: ${{ env.APP }}/android/app/build/outputs/apk/debug/app-debug.apk
+          path: appbuild/android/app/build/outputs/apk/debug/app-debug.apk
