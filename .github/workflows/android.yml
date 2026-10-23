@@ -28,6 +28,10 @@ jobs:
       - name: Instalar
         working-directory: appbuild
         run: npm install
+      - name: Embutir bibliotecas
+        working-directory: appbuild
+        run: |
+          cp node_modules/@supabase/supabase-js/dist/umd/supabase.js www/supabase.js && cp node_modules/qrcode-generator/qrcode.js www/qrcode.js && sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js#supabase.js#; s#https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js#qrcode.js#' www/index.html && echo embutido || echo usando-cdn
       - name: Adicionar Android
         working-directory: appbuild
         run: npx cap add android
