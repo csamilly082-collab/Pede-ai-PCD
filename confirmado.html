@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>E-mail confirmado</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F4F7FA;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#273444}
+.c{background:#fff;border-radius:20px;padding:32px 24px;max-width:380px;margin:16px;text-align:center;box-shadow:0 0 0 1px #D9E2EC,0 8px 24px #48658114}
+.i{width:72px;height:72px;border-radius:50%;margin:0 auto 16px;display:grid;place-items:center;font-size:36px;background:#e6f3ec;color:#2E7D5B}.i.e{background:#fbeaea;color:#C04444}
+h1{font-size:24px;margin:0 0 8px;color:#486581}p{color:#667085;line-height:1.5;margin:8px 0}</style></head><body>
+<div class="c"><div class="i" id="i">✓</div><h1 id="t">E-mail confirmado!</h1><p id="m">Sua conta foi ativada. Volte ao aplicativo <b>Pede Aí PDV</b> e faça login com seu e-mail e senha.</p></div>
+<script>
+var h=location.hash+location.search;
+if(/error|expired|denied/i.test(h)){document.getElementById('i').className='i e';document.getElementById('i').textContent='!';
+document.getElementById('t').textContent='Link inválido ou expirado';
+document.getElementById('m').innerHTML='Este link já foi usado ou venceu. Se você já confirmou, é só <b>entrar no aplicativo</b>. Se não, cadastre-se de novo no app para receber outro e-mail.'}
+try{history.replaceState(null,'',location.pathname)}catch(e){}
+</script></body></html>
